@@ -8,11 +8,9 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 
 
-
-# Create your views here.
-
 def lobby(request):
     return render(request, 'base/lobby.html')
+
 
 def room(request):
     return render(request, 'base/room.html')
@@ -36,33 +34,57 @@ def getToken(request):
 @csrf_exempt
 def createMember(request):
     data = json.loads(request.body)
+    room_name = data['room_name']
+    uid = data['UID']
+    name = data['name']
+
+    # Xonadagi foydalanuvchilar sonini tekshirish
+    current_members_count = RoomMember.objects.filter(room_name=room_name).count()
+
+    if current_members_count >= 2:
+        return JsonResponse({'error': 'Room is full. Please try again later.'}, status=400)
+
+    # Yangi a'zoni yaratish
     member, created = RoomMember.objects.get_or_create(
-        name=data['name'],
-        uid=data['UID'],
-        room_name=data['room_name']
+        name=name,
+        uid=uid,
+        room_name=room_name
     )
 
-    return JsonResponse({'name':data['name']}, safe=False)
+    return JsonResponse({'name': name}, safe=False)
 
 
 def getMember(request):
     uid = request.GET.get('UID')
     room_name = request.GET.get('room_name')
 
-    member = RoomMember.objects.get(
-        uid=uid,
-        room_name=room_name,
-    )
-    name = member.name
-    return JsonResponse({'name':member.name}, safe=False)
+    try:
+        member = RoomMember.objects.get(uid=uid, room_name=room_name)
+        return JsonResponse({'name': member.name}, safe=False)
+    except RoomMember.DoesNotExist:
+        return JsonResponse({'error': 'Member not found'}, status=404)
+
 
 @csrf_exempt
 def deleteMember(request):
     data = json.loads(request.body)
-    member = RoomMember.objects.get(
-        name=data['name'],
-        uid=data['UID'],
-        room_name=data['room_name']
-    )
-    member.delete()
-    return JsonResponse('Member deleted', safe=False)
+    try:
+        member = RoomMember.objects.get(
+            name=data['name'],
+            uid=data['UID'],
+            room_name=data['room_name']
+        )
+        member.delete()
+        return JsonResponse({'message': 'Member deleted'}, safe=False)
+    except RoomMember.DoesNotExist:
+        return JsonResponse({'error': 'Member not found'}, status=404)
+
+
+def getRoomStatus(request):
+    room_name = request.GET.get('room_name')
+    current_members_count = RoomMember.objects.filter(room_name=room_name).count()
+
+    if current_members_count >= 2:
+        return JsonResponse({'status': 'full'}, status=200)
+
+    return JsonResponse({'status': 'available'}, status=200)

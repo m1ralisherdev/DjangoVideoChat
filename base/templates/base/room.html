@@ -4,7 +4,7 @@
 
 <main>
     <section id="room-name-wrapper">
-        <p>Room Name: <span id="room-name"></span></p>
+        <p>Room Name: <span id="room-name">{{ room_name }}</span></p>
     </section>
 
     <section id="video-streams"></section>
@@ -24,7 +24,6 @@
     </section>
 </main>
 
-
 <script type="text/javascript" src="{% static 'assets/AgoraRTC_N-4.8.0.js' %}"></script>
-<script type="text/javascript" src="{% static 'js/streams.js' %}" ></script>
+<script type="text/javascript" src="{% static 'js/streams.js' %}"></script>
 {% endblock content %}
