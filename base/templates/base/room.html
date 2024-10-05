@@ -3,13 +3,16 @@
 {% block content %}
 
 <main>
+    <!-- Room Information -->
     <section id="room-name-wrapper">
         <p>Room Name: <span id="room-name">{{ room_name }}</span></p>
     </section>
 
+    <!-- Video Stream Section -->
     <section id="video-streams"></section>
 
-    <section id="controls-wrapper">
+    <!-- Control Buttons (Microphone, Camera, Leave) -->
+    <section id="controls-wrapper" style="position: absolute; top: 50%; right: 0; transform: translateY(-50%); display: flex; flex-direction: column; align-items: end; gap: 20px;">
         <div class="icon-wrapper">
             <img class="control-icon" id="mic-btn" src="{% static 'images/microphone.svg' %}" />
         </div>
@@ -22,8 +25,55 @@
             <img class="control-icon" id="leave-btn" src="{% static 'images/leave.svg' %}" />
         </div>
     </section>
+
+    <!-- Chat Section -->
+    <section id="chat-container">
+        <div id="chat-box" style="height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 10px; background-color: #f9f9f9;">
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="text" id="chat-message" placeholder="Enter your message..." style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 5px; outline: none;" />
+            <button id="send-message-btn" style="padding: 8px 16px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">Send</button>
+        </div>
+    </section>
+
 </main>
 
+<!-- Agora SDK and JS Scripts -->
 <script type="text/javascript" src="{% static 'assets/AgoraRTC_N-4.8.0.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/streams.js' %}"></script>
+
+<script>
+    // WebSocket for chat functionality
+    let url = `ws://${window.location.host}/ws/socket-server/`;
+    const chatSocket = new WebSocket(url);
+
+    // Handle incoming WebSocket messages
+    chatSocket.onmessage = function(e) {
+        let data = JSON.parse(e.data);
+
+        if (data.type === 'chat') {
+            let chatBox = document.getElementById('chat-box');
+            let newMessage = `
+                <div style="margin-bottom: 5px; padding: 8px; border-radius: 5px; background-color: #f1f1f1; border: 1px solid #ddd;">
+                    <strong>${data.user}</strong>: ${data.message}
+                </div>`;
+            chatBox.insertAdjacentHTML('beforeend', newMessage);
+            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to the bottom
+        }
+    };
+
+    // Send message via WebSocket
+    document.getElementById('send-message-btn').addEventListener('click', function() {
+        let message = document.getElementById('chat-message').value;
+
+        if (message.trim() !== '') {
+            chatSocket.send(JSON.stringify({
+                'message': message,
+                'room_name': "{{ room_name }}" // Include room name
+            }));
+            document.getElementById('chat-message').value = ''; // Clear input field
+        }
+    });
+</script>
+
 {% endblock content %}
